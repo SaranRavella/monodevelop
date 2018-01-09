@@ -115,6 +115,11 @@ namespace MonoDevelop.Ide.Tasks
 		static void HandleDocumentParsed (object sender, EventArgs e)
 		{
 			var doc = (Document)sender;
+
+			// C# uses the roslyn-provided todo comments system.
+			if (doc.Editor.MimeType == "text/x-csharp")
+				return;
+			
 			var pd = doc.ParsedDocument;
 			var project = doc.Project;
 			if (pd == null || project == null)
