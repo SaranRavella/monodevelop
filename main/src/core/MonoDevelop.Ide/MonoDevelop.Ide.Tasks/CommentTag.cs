@@ -44,13 +44,15 @@ namespace MonoDevelop.Ide.Tasks
 		
 		public static event EventHandler SpecialCommentTagsChanged;
 		
-		const string defaultTags = "FIXME:2;TODO:1;HACK:1;UNDONE:0";
+		const string defaultTags = "FIXME:2|TODO:1|HACK:1|UNDONE:0";
 		static List<CommentTag> specialCommentTags;
+
+		static internal ConfigurationProperty<string> TagsString = ConfigurationProperty.Create<string> ("Monodevelop.TaskListTokens", defaultTags);
 		
 		public static List<CommentTag> SpecialCommentTags {
 			get {
 				if (specialCommentTags == null) {
-					string tags = PropertyService.Get ("Monodevelop.TaskListTokens", defaultTags);
+					string tags = TagsString.Value;
 					specialCommentTags = CreateCommentTags (tags);
 				}
 				return specialCommentTags;
@@ -58,7 +60,7 @@ namespace MonoDevelop.Ide.Tasks
 			set {
 				if (!SpecialCommentTags.Equals (value)) {
 					specialCommentTags = value;
-					PropertyService.Set ("Monodevelop.TaskListTokens", ToString (specialCommentTags));
+					TagsString.Value = ToString (specialCommentTags);
 					if (SpecialCommentTagsChanged != null)
 						SpecialCommentTagsChanged (null, EventArgs.Empty);
 				}
@@ -71,8 +73,14 @@ namespace MonoDevelop.Ide.Tasks
 			var list = new List<CommentTag> ();
 			if (string.IsNullOrEmpty (tagListString))
 				return list;
+
+			string [] tags;
+			// ';' for backwards compatibility, we use '|' for roslyn compatibility.
+			if (tagListString.IndexOf (';') != -1) {
+				tags = tagListString.Split (';');
+			} else
+				tags = tagListString.Split ('|');
 			
-			string[] tags = tagListString.Split (';');
 			for (int n=0; n<tags.Length; n++) {
 				string[] split = tags [n].Split (':');
 				int priority;
@@ -89,7 +97,7 @@ namespace MonoDevelop.Ide.Tasks
 			string res = "";
 			for (int n=0; n<list.Count; n++) {
 				if (n > 0)
-					res += ";";
+					res += "|";
 				res += list [n].Tag + ":" + list [n].Priority;
 			}
 			return res;
