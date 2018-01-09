@@ -35,14 +35,13 @@ using MonoDevelop.Projects;
 
 namespace MonoDevelop.Ide.Tasks
 {
-	static class CommentTasksProvider
+	static partial class CommentTasksProvider
 	{
 		static ITodoListProvider todoListProvider;
 
 		static CommentTasksProvider()
 		{
 			todoListProvider = Ide.Composition.CompositionManager.GetExportedValue<ITodoListProvider> ();
-
 			todoListProvider.TodoListUpdated += TodoListUpdated;
 
 			Ide.IdeApp.Workspace.SolutionLoaded += OnSolutionLoaded;
@@ -51,6 +50,8 @@ namespace MonoDevelop.Ide.Tasks
 			TodoListUpdated += (sender, args) => {
 				var local = args;
 			};
+
+			InitializeLegacy ();
 		}
 
 		public static void Initialize ()
