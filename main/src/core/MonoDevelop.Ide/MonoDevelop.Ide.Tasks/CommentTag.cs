@@ -75,9 +75,11 @@ namespace MonoDevelop.Ide.Tasks
 				return list;
 
 			string [] tags;
+			bool migrate = false;
 			// ';' for backwards compatibility, we use '|' for roslyn compatibility.
 			if (tagListString.IndexOf (';') != -1) {
 				tags = tagListString.Split (';');
+				migrate = true;
 			} else
 				tags = tagListString.Split ('|');
 			
@@ -89,6 +91,8 @@ namespace MonoDevelop.Ide.Tasks
 				else
 					MonoDevelop.Core.LoggingService.LogWarning ("Invalid tag list in CommentTagSet: '{0}'", tagListString);
 			}
+			if (migrate)
+				TagsString.Value = ToString (list);
 			return list;
 		}
 		

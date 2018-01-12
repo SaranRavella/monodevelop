@@ -180,7 +180,7 @@ namespace MonoDevelop.Ide.Tasks
 			comments.BeginTaskUpdates ();
 			try {
 				foreach (var sln in IdeApp.Workspace.GetAllSolutions ()) {
-					CommentTasksProvider.LoadSolutionContents (sln);
+					CommentTasksProvider.Legacy.LoadSolutionContents (sln);
 					loadedSlns.Add (sln);
 				}
 			}
