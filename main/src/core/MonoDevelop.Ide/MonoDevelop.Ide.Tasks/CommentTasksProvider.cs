@@ -86,7 +86,7 @@ namespace MonoDevelop.Ide.Tasks
 
 		static void UpdateWorkspaceOptions (Microsoft.CodeAnalysis.Workspace ws)
 		{
-			ws.Options = ws.Options.WithChangedOption (TodoCommentOptions.TokenList, CommentTag.TagsString.Value);
+			ws.Options = ws.Options.WithChangedOption (TodoCommentOptions.TokenList, CommentTag.TagsString.Value.Replace(";", "|"));
 		}
 
 		static void OnSpecialTagsChanged (object sender, EventArgs args)

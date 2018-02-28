@@ -44,7 +44,7 @@ namespace MonoDevelop.Ide.Tasks
 		
 		public static event EventHandler SpecialCommentTagsChanged;
 		
-		const string defaultTags = "FIXME:2|TODO:1|HACK:1|UNDONE:0";
+		const string defaultTags = "FIXME:2;TODO:1;HACK:1;UNDONE:0";
 		static List<CommentTag> specialCommentTags;
 
 		static internal ConfigurationProperty<string> TagsString = ConfigurationProperty.Create<string> ("Monodevelop.TaskListTokens", defaultTags);
@@ -74,15 +74,7 @@ namespace MonoDevelop.Ide.Tasks
 			if (string.IsNullOrEmpty (tagListString))
 				return list;
 
-			string [] tags;
-			bool migrate = false;
-			// ';' for backwards compatibility, we use '|' for roslyn compatibility.
-			if (tagListString.IndexOf (';') != -1) {
-				tags = tagListString.Split (';');
-				migrate = true;
-			} else
-				tags = tagListString.Split ('|');
-			
+			string [] tags = tagListString.Split (';');
 			for (int n=0; n<tags.Length; n++) {
 				string[] split = tags [n].Split (':');
 				int priority;
@@ -91,8 +83,6 @@ namespace MonoDevelop.Ide.Tasks
 				else
 					MonoDevelop.Core.LoggingService.LogWarning ("Invalid tag list in CommentTagSet: '{0}'", tagListString);
 			}
-			if (migrate)
-				TagsString.Value = ToString (list);
 			return list;
 		}
 		
@@ -101,7 +91,7 @@ namespace MonoDevelop.Ide.Tasks
 			string res = "";
 			for (int n=0; n<list.Count; n++) {
 				if (n > 0)
-					res += "|";
+					res += ";";
 				res += list [n].Tag + ":" + list [n].Priority;
 			}
 			return res;
