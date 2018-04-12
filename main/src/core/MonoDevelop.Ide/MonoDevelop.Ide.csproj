@@ -9636,6 +9636,9 @@
     <Compile Include="Gui\MonoDevelop.Ide.StandardHeader.StandardHeaderPolicyPanelWidget.cs" />
     <Compile Include="MonoDevelop.Ide.Templates\MicrosoftTemplateEngineImageLoader.cs" />
     <Compile Include="MonoDevelop.Ide.Editor.Extension\BlockStructureFoldingTextEditorExtension.cs" />
+    <Compile Include="MonoDevelop.Ide.RoslynServices\MonoDevelopDocumentTrackingService.cs" />
+    <Compile Include="MonoDevelop.Ide.RoslynServices\MonoDevelopProjectCacheHostServiceFactory.cs" />
+    <Compile Include="MonoDevelop.Ide.RoslynServices\MonoDevelopWorkspaceCacheService.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Makefile.am" />
@@ -9683,6 +9686,7 @@
     <Folder Include="MonoDevelop.Ide.Editor.Highlighting\syntaxes\Markdown\" />
     <Folder Include="MonoDevelop.Ide.EditorConfig\" />
     <Folder Include="Gui\" />
+    <Folder Include="MonoDevelop.Ide.RoslynServices\" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="gtkrc">
