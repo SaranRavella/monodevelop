@@ -108,15 +108,17 @@ namespace MonoDevelop.Ide.TypeSystem
 			// Trigger running compiler syntax and semantic errors via the diagnostic analyzer engine
 			Options = Options.WithChangedOption (Microsoft.CodeAnalysis.Diagnostics.InternalRuntimeDiagnosticOptions.Syntax, true)
 				.WithChangedOption (Microsoft.CodeAnalysis.Diagnostics.InternalRuntimeDiagnosticOptions.Semantic, true)
-			// Always use persistent storage regardless of solution size, at least until a consensus is reached
-			// https://github.com/mono/monodevelop/issues/4149 https://github.com/dotnet/roslyn/issues/25453
-				.WithChangedOption (Microsoft.CodeAnalysis.Storage.StorageOptions.SolutionSizeThreshold, 0);
+				// Always use persistent storage regardless of solution size, at least until a consensus is reached
+				// https://github.com/mono/monodevelop/issues/4149 https://github.com/dotnet/roslyn/issues/25453
+				.WithChangedOption (Microsoft.CodeAnalysis.Storage.StorageOptions.SolutionSizeThreshold, 0)
+				.WithChangedOption (Microsoft.CodeAnalysis.Shared.Options.RuntimeOptions.FullSolutionAnalysis, IdeApp.Preferences.EnableFullSolutionSourceAnalysis);
 
 			if (IdeApp.Preferences.EnableSourceAnalysis) {
 				solutionCrawler.Register (this);
 			}
 
 			IdeApp.Preferences.EnableSourceAnalysis.Changed += OnEnableSourceAnalysisChanged;
+			IdeApp.Preferences.EnableFullSolutionSourceAnalysis.Changed += OnEnableFullSourceAnalysisChanged;
 
 			foreach (var factory in AddinManager.GetExtensionObjects<Microsoft.CodeAnalysis.Options.IDocumentOptionsProviderFactory>("/MonoDevelop/Ide/TypeService/OptionProviders"))
 				Services.GetRequiredService<Microsoft.CodeAnalysis.Options.IOptionService> ().RegisterDocumentOptionsProvider (factory.Create (this));
@@ -132,6 +134,11 @@ namespace MonoDevelop.Ide.TypeSystem
 				solutionCrawler.Unregister (this);
 		}
 
+		void OnEnableFullSourceAnalysisChanged (object sender, EventArgs args)
+		{
+			Options = Options.WithChangedOption (Microsoft.CodeAnalysis.Shared.Options.RuntimeOptions.FullSolutionAnalysis, IdeApp.Preferences.EnableFullSolutionSourceAnalysis);
+		}
+
 		protected override void Dispose (bool finalize)
 		{
 			base.Dispose (finalize);
@@ -143,6 +150,7 @@ namespace MonoDevelop.Ide.TypeSystem
 			ISolutionCrawlerRegistrationService solutionCrawler = Services.GetService<ISolutionCrawlerRegistrationService> ();
 			solutionCrawler.Unregister (this);
 			IdeApp.Preferences.EnableSourceAnalysis.Changed -= OnEnableSourceAnalysisChanged;
+			IdeApp.Preferences.EnableFullSolutionSourceAnalysis.Changed -= OnEnableFullSourceAnalysisChanged;
 
 			CancelLoad ();
 			if (IdeApp.Workspace != null) {
