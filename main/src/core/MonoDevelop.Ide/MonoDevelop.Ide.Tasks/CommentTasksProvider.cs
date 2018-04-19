@@ -70,6 +70,8 @@ namespace MonoDevelop.Ide.Tasks
 
 		static object lockObject = new object ();
 		static Dictionary<object, TodoItemsUpdatedArgs> cachedUntilViewCreated = new Dictionary<object, TodoItemsUpdatedArgs> ();
+		static int loadCachedContentsAtItemCount = -1;
+
 		internal static void LoadCachedContents ()
 		{
 			if (cachedUntilViewCreated == null)
@@ -91,6 +93,15 @@ namespace MonoDevelop.Ide.Tasks
 			}
 		}
 
+		// Test helper utility so we can test multiple tests for cached 
+		internal static void ResetCachedContents (int loadAtCount)
+		{
+			lock (lockObject) {
+				cachedUntilViewCreated = new Dictionary<object, TodoItemsUpdatedArgs> ();
+				loadCachedContentsAtItemCount = loadAtCount;
+			}
+		}
+
 		static void OnTodoListUpdated (object sender, TodoItemsUpdatedArgs args)
 		{
 			if (!TryGetDocument (args, out var doc, out var project))
@@ -102,8 +113,12 @@ namespace MonoDevelop.Ide.Tasks
 			else {
 				if (cachedUntilViewCreated != null) {
 					lock (lockObject) {
-						if (cachedUntilViewCreated != null)
+						if (cachedUntilViewCreated != null) {
 							cachedUntilViewCreated [args.Id] = args;
+
+							if (cachedUntilViewCreated.Count == loadCachedContentsAtItemCount)
+								LoadCachedContents ();
+						}
 						return;
 					}
 				}
