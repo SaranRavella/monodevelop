@@ -76,7 +76,6 @@ namespace MonoDevelop.Ide.Editor.Extension
 			src.Cancel ();
 			src = new CancellationTokenSource ();
 			var token = src.Token;
-			// TODO: If document is null, wait for document changed and query.
 			if (DocumentContext.AnalysisDocument == null || DocumentContext.AnalysisDocument.Id != args.DocumentId)
 				return;
 
