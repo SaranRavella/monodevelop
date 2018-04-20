@@ -14,13 +14,15 @@
 /main/src/core/MonoDevelop.Ide/MonoDevelop.Components.Commands @Therzok @slluis
 /main/src/core/MonoDevelop.Ide/MonoDevelop.Components.Docking @slluis @sevoku
 /main/src/core/MonoDevelop.Ide/MonoDevelop.Components.MainToolbar @Therzok
+/main/src/core/MonoDevelop.Ide/MonoDevelop.Components/Mac @Therzok
+/main/src/core/MonoDevelop.Ide/MonoDevelop.Components/Windows @Therzok
 /main/src/core/MonoDevelop.Ide/MonoDevelop.Components.Theming @sevoku
 /main/src/core/MonoDevelop.Ide/MonoDevelop.Components @slluis @sevoku
 /main/src/core/MonoDevelop.Ide/MonoDevelop.Ide.CodeCompletion @slluis @mkrueger
 /main/src/core/MonoDevelop.Ide/MonoDevelop.Ide.CodeFormatting @slluis @mkrueger
 /main/src/core/MonoDevelop.Ide/MonoDevelop.Ide.CodeTemplates @mkrueger
 /main/src/core/MonoDevelop.Ide/MonoDevelop.Ide.Composition @Therzok @KirillOsenkov
-/main/src/core/MonoDevelop.Ide/MonoDevelop.Ide.Desktop @slluis
+/main/src/core/MonoDevelop.Ide/MonoDevelop.Ide.Desktop @Therzok @slluis
 /main/src/core/MonoDevelop.Ide/MonoDevelop.Ide.Editor.Extension @Therzok @mkrueger
 /main/src/core/MonoDevelop.Ide/MonoDevelop.Ide.Editor.Highlighting @mkrueger
 /main/src/core/MonoDevelop.Ide/MonoDevelop.Ide.Editor.TextMate @mkrueger
