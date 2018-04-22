@@ -159,6 +159,9 @@ namespace MonoDevelop.Ide.Tasks
 				var monitor = new ProgressMonitor ();
 				// Load the solution into the workspace.
 				bool opened = await IdeApp.Workspace.OpenWorkspaceItemInternal (solFile, true, true, null, monitor);
+
+				var errorString = string.Join (Environment.NewLine, monitor.Errors.Select (x => x.Message + ":" + x.Exception));
+				Assert.IsFalse (monitor.HasErrors, $"Monitor reported errors: {errorString}");
 				Assert.IsTrue (opened, $"Solution file {solFile} could not be opened");
 
 				await task;
