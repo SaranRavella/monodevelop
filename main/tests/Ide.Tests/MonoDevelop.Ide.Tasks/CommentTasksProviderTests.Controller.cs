@@ -140,8 +140,9 @@ namespace MonoDevelop.Ide.Tasks
 				var tcs = RegisterCallback (options);
 
 				BindTimeout (tcs);
+				var monitor = new ProgressMonitor ();
 				// Load the solution into the workspace.
-				bool opened = await IdeApp.Workspace.OpenWorkspaceItem (solFile);
+				bool opened = await IdeApp.Workspace.OpenWorkspaceItemInternal (solFile, true, true, null, monitor);
 				Assert.IsTrue (opened, $"Solution file {solFile} could not be opened");
 
 				await tcs.Task;
