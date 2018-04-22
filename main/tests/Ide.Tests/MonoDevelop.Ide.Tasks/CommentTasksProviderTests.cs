@@ -40,19 +40,16 @@ namespace MonoDevelop.Ide.Tasks
 			//Initialize IdeApp so IdeApp.Workspace is not null, comment tasks listen to root workspace events.
 			if (!IdeApp.IsInitialized)
 				IdeApp.Initialize (new ProgressMonitor ());
-
-			// Trigger cached contents clear.
-			CommentTasksProvider.LoadCachedContents ();
 		}
 
-		static async Task RunTest (Action<Controller> act)
+		static async Task RunTest (Func<Controller, Task> act)
 		{
 			// Keep the current special comment tags and restore them after.
 			var oldTags = CommentTag.SpecialCommentTags;
 			var helper = new Controller ();
 
 			try {
-				act (helper);
+				await act (helper);
 			} finally {
 				await helper.DisposeAsync ();
 				CommentTag.SpecialCommentTags = oldTags;
@@ -77,7 +74,7 @@ namespace MonoDevelop.Ide.Tasks
 				await helper.LoadProject ();
 
 				// Only one update for the added file.
-				await helper.AddToDoFile (new Controller.Options (withToDos: false) {
+				await helper.AddToDoFile (new Controller.Options (withToDos: true) {
 					ExpectedFiles = new[] { Controller.FileName, },
 					NotificationCount = 1,
 				});
@@ -121,7 +118,10 @@ namespace MonoDevelop.Ide.Tasks
 					},
 				});
 
-				await helper.SetCommentTags (oldTags, new Controller.Options (withToDos: true));
+				await helper.SetCommentTags (oldTags, new Controller.Options (withToDos: true) {
+					ExpectedFiles = new [] { Controller.FileName },
+					NotificationCount = 1,
+				});
 			});
 		}
 
@@ -131,14 +131,14 @@ namespace MonoDevelop.Ide.Tasks
 		{
 			await RunTest (async helper => {
 				var batchOptions = new Controller.Options (withToDos);
-				batchOptions.GetChangeCount = (count) => batchOptions.ExpectedFiles.Length;
+				batchOptions.ChangeCount = (count) => batchOptions.ExpectedFiles.Length;
 				batchOptions.NotificationCount = 1;
 
 				await helper.SetupProject (withToDos);
 
-				CommentTasksProvider.ResetCachedContents (batchOptions.ExpectedFiles.Length);
+				CommentTasksProvider.ResetCachedContents (cnt => cnt == batchOptions.ExpectedFiles.Length);
 
-				await helper.LoadProject (batchOptions);
+				await helper.LoadProject (batchOptions, loadCachedContents: false);
 			});
 		}
 
@@ -149,12 +149,49 @@ namespace MonoDevelop.Ide.Tasks
 				await helper.SetupProject (withToDos: true);
 				await helper.LoadProject ();
 
-				var options = new Controller.Options (withToDos: true);
+				var options = new Controller.Options (withToDos: true) {
+					ExpectedFiles = new[] { Controller.FileName, },
+				};
+
 				var list = options.ExpectedComments.ToList ();
 				list.Add (("TODO: Added", "TODO", 5, 3));
 				options.ExpectedComments = list.ToArray ();
 
-				await helper.ModifyToDoFile ("// TODO: Added");
+				await helper.ModifyToDoFile ("// TODO: Added", options);
+			});
+		}
+
+		[TestCase(true)]
+		[TestCase(false)]
+		public async Task TestCachedContentsAreReleasedIfNotQueried (bool withToDos)
+		{
+			// Simulates the use-case where the Tasks pad is not constructed.
+			// Ensure we don't leak anything.
+
+			await RunTest (async helper => {
+				await helper.SetupProject (withToDos);
+
+				var options = new Controller.Options (withToDos);
+				var tcs = new TaskCompletionSource<bool> ();
+
+				// Set it so we get notified on cache items.
+				CommentTasksProvider.ResetCachedContents (shouldTriggerLoad: cnt => {
+					if (cnt == options.NotificationCount)
+						tcs.TrySetResult (true);
+					return false;
+				});
+
+				Controller.BindTimeout (tcs);
+				await helper.LoadProject (loadCachedContents: false, registerCallback: false);
+
+				await tcs.Task;
+				Assert.AreEqual (options.ExpectedFiles.Length, CommentTasksProvider.GetCachedContentsCount ());
+
+				await IdeApp.Workspace.Close ();
+				Assert.AreEqual (0, CommentTasksProvider.GetCachedContentsCount ());
+
+				CommentTasksProvider.LoadCachedContents ();
+				Assert.AreEqual (-1, CommentTasksProvider.GetCachedContentsCount ());
 			});
 		}
 	}

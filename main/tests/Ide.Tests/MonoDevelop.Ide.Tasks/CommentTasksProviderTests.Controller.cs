@@ -39,7 +39,7 @@ namespace MonoDevelop.Ide.Tasks
 	{
 		class Controller
 		{
-			static void BindTimeout<T> (TaskCompletionSource<T> tcs)
+			public static void BindTimeout<T> (TaskCompletionSource<T> tcs)
 			{
 				// Really conservative timeout.
 				const int timeout = 3 * 60 * 1000;
@@ -53,8 +53,16 @@ namespace MonoDevelop.Ide.Tasks
 				readonly bool withToDos;
 				public string [] ExpectedFiles;
 				public (string, string, int, int) [] ExpectedComments;
-				public Func<int, int> GetChangeCount;
-				public int NotificationCount;
+				public Func<int, int> ChangeCount;
+				int customNotificationCount = -1;
+
+				public int NotificationCount {
+					get {
+						return customNotificationCount != -1 ? customNotificationCount : ExpectedFiles.Length;
+					} set {
+						customNotificationCount = value;
+					}
+				}
 
 				public Options (bool withToDos)
 				{
@@ -62,8 +70,7 @@ namespace MonoDevelop.Ide.Tasks
 
 					ExpectedFiles = DefaultGetExpectedFiles ().ToArray ();
 					ExpectedComments = DefaultGetExpectedComments ().ToArray ();
-					GetChangeCount = cnt => 1;
-					NotificationCount = -1;
+					ChangeCount = cnt => 1;
 				}
 
 				IEnumerable<string> DefaultGetExpectedFiles ()
@@ -99,10 +106,11 @@ namespace MonoDevelop.Ide.Tasks
 				}
 			}
 
-			static string WriteFileText (Project project, string file, string content)
+			static string WriteFileText (Project project, string file, string toWrite)
 			{
 				var path = System.IO.Path.Combine (project.BaseDirectory, file);
-				System.IO.File.WriteAllText (path, content);
+				System.IO.File.WriteAllText (path, toWrite);
+				FileService.NotifyFileChanged (path);
 				return path;
 			}
 
@@ -135,17 +143,25 @@ namespace MonoDevelop.Ide.Tasks
 				await tcs.Task;
 			}
 
-			public async Task LoadProject (Options options = null)
+			public async Task LoadProject (Options options = null, bool loadCachedContents = true, bool registerCallback = true)
 			{
-				var tcs = RegisterCallback (options);
+				if (loadCachedContents)
+					CommentTasksProvider.LoadCachedContents ();
 
-				BindTimeout (tcs);
+				Task task;
+				if (registerCallback) {
+					var tcs = RegisterCallback (options);
+					BindTimeout (tcs);
+					task = tcs.Task;
+				} else
+					task = Task.CompletedTask;
+
 				var monitor = new ProgressMonitor ();
 				// Load the solution into the workspace.
 				bool opened = await IdeApp.Workspace.OpenWorkspaceItemInternal (solFile, true, true, null, monitor);
 				Assert.IsTrue (opened, $"Solution file {solFile} could not be opened");
 
-				await tcs.Task;
+				await task;
 			}
 
 			public async Task SetCommentTags (List<CommentTag> tags, Options options = null)
@@ -175,6 +191,7 @@ namespace MonoDevelop.Ide.Tasks
 				var tcs = new TaskCompletionSource<bool> ();
 				var gatheredFiles = new HashSet<string> ();
 				int count = 0;
+				IReadOnlyList<TypeSystem.Tag> comments = null;
 				TaskService.CommentTasksChanged += (s, args) => {
 					if (tcs.Task.IsCompleted)
 						return;
@@ -182,16 +199,22 @@ namespace MonoDevelop.Ide.Tasks
 					++count;
 
 					try {
-						Assert.Less (options.NotificationCount + 1, count);
-						Assert.AreEqual (options.GetChangeCount (count), args.Changes.Count);
+						Assert.Less (count, options.NotificationCount + 1);
+						Assert.AreEqual (options.ChangeCount (count), args.Changes.Count);
 
 						// Verify changes on each event handler invocation. We cannot guarantee order in which files are parsed.
 						foreach (var change in args.Changes) {
-							bool wasAdded = gatheredFiles.Add (System.IO.Path.GetFileName (change.FileName));
+							var currentFile = System.IO.Path.GetFileName (change.FileName);
+
+							bool wasAdded = gatheredFiles.Add (currentFile);
 							Assert.IsTrue (wasAdded, "Added duplicate entry for file");
 
 							Assert.IsNotNull (change.Project);
 							Assert.IsNotNull (change.FileName);
+
+							// Get the comments for TODOs.cs
+							if (currentFile == FileName)
+								comments = change.TagComments;
 						}
 
 						// Validate data at last notification.
@@ -199,9 +222,6 @@ namespace MonoDevelop.Ide.Tasks
 							// See that every file is parsed.
 							foreach (var file in options.ExpectedFiles)
 								Assert.That (gatheredFiles, Contains.Item (file));
-
-							// See that we got the right todo comments
-							var comments = args.Changes [0].TagComments;
 
 							if (options.ExpectedComments.Length == 0) {
 								Assert.IsNull (comments);
@@ -215,6 +235,7 @@ namespace MonoDevelop.Ide.Tasks
 									Assert.AreEqual (region, comments [i].Region);
 								}
 							}
+							tcs.TrySetResult (true);
 						}
 					} catch (Exception ex) {
 						tcs.TrySetException (ex);
